@@ -3,6 +3,11 @@
 ## Introduction
 ## Goals
 ## Contributors
+
+1. Nikin Baidar
+1. Nimesh Gopal Pradhan
+1. Paras Pujara
+
 ## Project Architecture
 
 
