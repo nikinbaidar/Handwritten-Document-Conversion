@@ -1,2 +1,3 @@
 data/test/**
 data/train/**
+notebook/model/model_final.pth
