@@ -1,0 +1,4 @@
+1. Requirement analysis
+1. Dataset
+1. Baseline model and its evaluation 
+1. Block diagram of entire system

@@ -1,7 +1,13 @@
 # Handwritten document conversion 1
 
 ## Introduction
+
 ## Goals
+
+1. To achieve precise recognition and conversion of handwritten text
+1. To optimize conversion process for faster digitization of documents
+1. Design and intuitive interface for easy document conversion
+
 ## Contributors
 
 1. Nikin Baidar
@@ -22,7 +28,8 @@ To begin this project, use the included `Makefile`
 
 #### Creating Virtual Environment
 
-This package is built using `python-3.8`. 
+This package is built using `python-3.11`. 
+
 We recommend creating a virtual environment and using a matching version to ensure compatibility.
 
 #### pre-commit
