@@ -1,3 +1,4 @@
 data/test/**
 data/train/**
-notebook/model/model_final.pth
+notebook/model/**
+notebook/layout-parser-test.ipynb
