@@ -1,4 +1,5 @@
-data/test/**
+data/**
 data/train/**
 notebook/model/**
 notebook/layout-parser-test.ipynb
+presentation/**
