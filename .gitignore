@@ -4,3 +4,4 @@ notebook/model/**
 notebook/layout-parser-test.ipynb
 presentation/**
 docs/**/progress.pdf
+MODELS/**
