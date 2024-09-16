@@ -5,3 +5,4 @@ notebook/layout-parser-test.ipynb
 presentation/**
 docs/**/progress.pdf
 MODELS/**
+tools/yolo_test.py
