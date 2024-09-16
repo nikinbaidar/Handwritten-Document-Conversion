@@ -1,0 +1,383 @@
+\documentclass[compress]{beamer} 
+
+\usecolortheme{rose}
+
+\usepackage{graphicx} 
+\usepackage{float} 
+\usepackage{xcolor} 
+\usepackage{ulem}
+
+\setbeamercolor{footline}{fg=black}
+\setbeamerfont {footline}{series=\bfseries}
+
+\definecolor{ForestGreen}{HTML}{00a550}
+
+\beamertemplatenavigationsymbolsempty
+
+\title{Handwritten Document Conversion - 1}
+\author{Nikin Baidar \and Nimesh Gopal Pradhan}
+\date{\today}
+
+\begin{document}
+
+\begingroup
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+\endgroup
+
+\begingroup
+\addtocounter{framenumber}{-1}
+\setbeamertemplate{navigation symbols}{
+  \usebeamerfont{footline}
+  \usebeamercolor[fg]{footline}
+  \insertframenumber
+}
+
+\iffalse
+
+  \begin{frame}[t]
+    \frametitle{Statement Of Problem}
+
+    \vskip 10pt
+
+    \begin{itemize}
+
+      \item While digitization has preserved the conten        \vskip 10pt
+
+      \item In spatial domain, we deal with images as it is. In frequency
+        domain we deal with the \textcolor{ForestGreen}{rate at which the pixel values
+        change} in the spatial domain. \vskip 10pt
+
+      \item Image processing in \textcolor{red}{frequency domain} involves
+        transforming an image in spatial domain into frequency domain using
+        \textcolor{red}{Fourier transform}. \vskip 10pt
+
+      \item Operations are performed in the frequency domain and the image is
+        re-transformed into spatial domain for visualization.
+
+    \end{itemize}
+
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Image Processing Steps: Frequency Domain}
+
+    \begin{figure}[H]
+      \centering
+      \caption{Block diagram of steps to be taken for image processing in the
+      frequency domain.}
+      \label{fig:}
+    \end{figure}
+  \end{frame}
+  
+
+  \begin{frame}
+    \frametitle{Understanding Frequency in Images}
+
+    \begin{figure}[H]
+      \centering
+      \caption{Illustration of image frequency}
+      \label{fig:}
+    \end{figure}
+
+    \begin{itemize}
+      \item Zebra pattern: High Frequency
+      \item Sky : Low frequency
+    \end{itemize}
+    
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Fourier Transform}
+
+    \vskip -10pt
+
+    \begin{figure}[H]
+      \centering
+    \end{figure}
+
+    \vskip -10pt
+
+    \begin{block}{2D Fourier transform:} 
+    \begin{equation*}
+      I(\omega,\psi) = \iint_{-\infty}^{+\infty} i(x,y) \,
+      e^{-j2\pi(\omega x + \psi y)} dy\,dx
+      \label{1D_fourier_transform}
+    \end{equation*}
+    \end{block}
+
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{2D Discrete Fourier Transform}
+
+      Let the image data be $i(x, y)$, where $x$ represents the rows and has
+      range $[0, 1, 2, \ldots M-1]$ and $y$ represents the columns and has
+      range $[0, 1, 2, \ldots N-1]$. 
+
+    \begin{block}{2D DFT:}
+      
+      \begin{equation}
+        I(\omega, \psi) = \frac{1}{MN} \sum_{x=0}^{M-1} \sum_{y=0}^{N-1} i(x,y) \;
+        e^{-j2\pi \big( \frac{\omega x}{M} + \frac{\psi y}{N} \big)}
+      \end{equation}
+
+    \end{block}
+
+    \begin{block}
+      {2D IDFT:}
+
+    \begin{equation}
+      i(x,y) = \sum_{x=0}^{M-1} \sum_{y=0}^{N-1} I(\omega, \psi) \;
+      e^{j2\pi \big( \frac{\omega x}{M} + \frac{\psi y}{N} \big)}
+    \end{equation}
+    
+    \end{block}
+
+    \vskip 5pt
+
+    Here, `$\omega$' corresponds to horizontal frequency and `$\psi$'
+    corresponds to the vertical frequency.
+
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Image Frequency Visualization}
+    \begin{figure}[H]
+      \centering
+      \caption{Horizontal Frequency(L) \& Vertical Frequency(R)}
+      \label{fig:}
+    \end{figure}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{2D DFT Examples}
+    \begin{figure}[H]
+      \centering
+      \caption{Images in Spatial(L) and Frequency(R) Domains}
+      \label{Images in Spatial(L) and Frequency(R) Domains}
+    \end{figure}
+    
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{2D DFT Examples}
+    \begin{figure}[H]
+      \centering
+      \caption{Horizontal Frequency: Intensity image and Frequency image}
+      \label{fig:-images-rect4160-png}
+    \end{figure}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Adding Different Frequencies}
+    \begin{figure}[H]
+      \centering
+      \caption{Sum of two different frequencies}
+      \label{fig:-images-rectadded-png}
+    \end{figure}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{More 2D DFT Examples}
+    \begin{figure}[H]
+      \centering
+      \caption{Vertical Frequency: Intensity image(L) and Frequency image(R)}
+      \label{fig:-images-rect4160-png}
+    \end{figure}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{More 2D DFT Examples}
+    \begin{figure}[H]
+      \centering
+      \caption{Frequencies in either direction}
+    \end{figure}
+  \end{frame}
+
+  \begin{frame}
+
+    As the images become more complex, it becomes difficult for us to visualize
+    in our minds what it would look like in the frequency domain.
+    
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{2D DFT: Rubik's Cube}
+
+    \begin{figure}[H]
+      \centering
+      \caption{Intensity image (L) and Frequency Image(R)}
+    \end{figure}
+    
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{How we perceive things!}
+
+    \begin{itemize}
+      \item Humans vision system (rods and cons) does not process the pixel
+        intensities to form an image.
+        
+      \item It performs the frequency analysis of the signals incident on the
+        retina.
+
+    \end{itemize}
+
+    \begin{figure}[H]
+      \centering
+      \caption{High Frequency Image(L) \& Low frequency Image(R)}
+      \label{fig:}
+    \end{figure}
+    
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{What do you see?}
+
+    \begin{figure}[H]
+      \centering
+      \caption{Hybrid Image}
+      \label{fig:-images-hybrid_image-png}
+    \end{figure}
+
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Why deal with the Frequency Domain?}
+
+    Provided that the way we perceive things is dependent on frequencies,
+    processing images in the frequency domain allows to: \vskip 10pt
+
+    \begin{itemize}
+      \item Further implement diverse image processing tasks \vskip 10pt
+      \item Detect some features that cannot be detected in the spatial domain.
+        i.e. to obtain new information so that a different analysis can be
+        made. \vskip 10pt
+      \item Certain processing techniques such as convolution is
+        computationally more effective in the frequency domain.
+    \end{itemize}
+
+    \begin{block}{Frequency Domain Applications}
+      The primary operations performed in the frequency domain is the
+      application of high pass and low pass filters to images.
+    \end{block}
+
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Showcasing Frequency Domain Applications}
+
+    \begin{figure}[H]
+      \centering
+      \caption{High Pass Filtering}
+    \end{figure}
+    
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Showcasing Frequency Domain Applications}
+
+    \begin{figure}[H]
+      \centering
+      \caption{Low Pass Filtering}
+    \end{figure}
+    
+  \end{frame}
+  \begin{frame}
+    \frametitle{Code}
+
+    \vskip -60pt
+    
+    \begin{itemize}
+      \item \sout{Google Colab} Localhost
+        \begin{itemize}
+          \item Implementing 2D DFT in Python: Custom and Built-ins
+          \item Conversion of image from the spatial domain to the frequency domain.
+          \item Visualizing images in frequency domain in Python
+        \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  \setbeamertemplate{footline}{}
+
+  \begin{frame}[noframenumbering]
+    \vspace{10pt}
+    \begin{center}
+      \Huge \textit{The end}
+    \end{center}
+  \end{frame}
+\endgroup
+
+\fi
+
+\begin{frame}
+    \frametitle{Work planned in the previous week}
+    \subsection{Work planned in the previous week}
+
+    \begin{enumerate}
+        \item Annotate more data
+        \item Train detectron2 on newly annotated data for a more precise text
+            segment detection.
+        \item Explore measures to improve Tesseract's performance
+    \end{enumerate}
+    \vfill
+\end{frame}
+
+\begin{frame}
+    \frametitle{Progress}
+    \subsection{Progress}
+    \begin{enumerate}
+    \item \sout{Annotate more data}
+            \begin{itemize}
+                \item Downsampled examples to improve performance on quality
+                    images.
+                \item 393 out of 400 annotations are complete for the training set.
+                \item 40 out of 100 annotations are complete for the test set.
+            \end{itemize}
+        \item Train detectron2 on newly annotated data for more precise text
+            segment detection.
+        \item \sout{Measures to improve Tesseract's performance}
+            \begin{itemize}
+                    \item Tesseract provides an \texttt{image\_to\_data} that
+                        provides a \texttt{confidence\_score} for each text it
+                        extracts from an image; for different image processing
+                        techniques we select the one with the highest
+                        confidence score.
+                    \item We also pass the final output to some sort of spell
+                        checker to improve overall performance
+            \end{itemize}
+        \item Exploring options for the web app
+            \begin{itemize}
+                \item Next + Py backend or Streamlit?
+            \end{itemize}
+     \end{enumerate}
+    \vfill
+\end{frame}
+
+\begin{frame}
+    \frametitle{Next Steps}
+    \subsection{Next Steps}
+    \begin{enumerate}
+        \item Backlog from last week
+        \item Explore deep learning models for contextual spell checker instead
+            of employing plain spell checking.
+        \item A more robust output; map the input image to a \texttt{.txt} file
+        \item Backend for the web app and (at least) a CLI interface.
+    \end{enumerate}
+
+    
+\end{frame}
+
+\end{document}
+
+The term F(0,0) is called the DC component of the image and is the average of all
+pixel intensity values in the image and is the origin of the image in the
+frequency domain.
+
+Dot on the right is the actual frequency.
+
+Dot on the left is the mirror of the dot on the right along the central dot.
+

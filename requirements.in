@@ -1,3 +1,7 @@
 pyarrow
 pandas[performance, parquet, aws]
 pendulum
+detectron2
+numpy
+opencv-python
+pillow
