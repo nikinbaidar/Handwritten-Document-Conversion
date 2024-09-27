@@ -12,11 +12,9 @@ warnings.filterwarnings("ignore")
 
 def getLayout(img):
     detector = LayoutParser(img)
-    out_im = detector.visualize_layout()
-    boxes = detector.y_sort_layout()
+    boxes, out_im = detector.y_sort_layout()
     text_regions = [img[top:bottom, left:right]
-                    for left, top, right, bottom in map(
-        lambda box: map(int, box.tolist()), boxes)]
+                    for left, top, right, bottom in boxes]
     return text_regions, out_im
 
 

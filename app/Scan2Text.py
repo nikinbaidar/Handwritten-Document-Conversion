@@ -6,39 +6,63 @@ import cv2
 from PIL import Image
 import os
 import sys
-import warnings
 import numpy as np
+import random
 
 from keras.layers import StringLookup
-from detectron2.utils.visualizer import Visualizer, ColorMode
-from detectron2.data.catalog import Metadata
+
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultPredictor
 
 from ultralytics import YOLO
 from autocorrect import Speller
 
-root = os.path.join("/home/nikin/projects", "Handwritten-Document-Conversion")
 
+import warnings
 warnings.filterwarnings("ignore")
 
+root = os.path.join("/home/nikin/projects", "Handwritten-Document-Conversion")
 np.random.seed(42)
 tf.random.set_seed(42)
 
 model_paths = {
     'detectron2': os.path.join(root, 'MODELS/models'),
-    'yolo': os.path.join(root, 'notebook/end_end_yolo/best100epoch.pt'),
+    'yolo': os.path.join(root, 'notebook/end_end_yolo/bestv10.pt'),
     'crnn': os.path.join(
         root, 'notebook/end_end_yolo/handwriting_recognizer50.h5'),
 }
 
 
-def cv2_imshow(img) -> None:
-    cv2.imshow("", img)
-    while cv2.waitKey() != 27:
-        continue
-    cv2.destroyAllWindows()
-    return None
+def scale_img(im, scale=1.0):
+    if not isinstance(im, np.ndarray):
+        raise TypeError(f"Expected numpy.ndarray got {type(im)}")
+
+    height, width = im.shape[:2]
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+    im = cv2.resize(im, (new_width, new_height))
+    return im
+
+
+def cv2_imshow(im, scale=None):
+    if not isinstance(im, np.ndarray):
+        raise TypeError(f"Expected numpy.ndarray got {type(im)}")
+
+    if scale is not None:
+        im = scale_img(im, scale=scale)
+
+    cv2.imshow("", im)
+    while True:
+        if cv2.waitKey() == 27:
+            cv2.destroyAllWindows()
+            break
+
+
+def random_color():
+    r = random.randint(0, 256)
+    g = random.randint(0, 128)
+    b = random.randint(0, 256)
+    return (r, g, b)
 
 
 class CTCLayer(keras.layers.Layer):
@@ -63,6 +87,23 @@ class CTCLayer(keras.layers.Layer):
 
 class LayoutParser():
     def __init__(self, im, detection_threshold=0.85):
+        """
+        Initializes the LayoutParser instance for layout detection in document
+        images.
+
+        Args:
+            * im (numpy.ndarray): The input image on which layout detection
+            will be performed.
+            * detection_threshold (float, optional): The score threshold for
+            filtering predictions. (default 0.85). Predictions with scores
+            below this threshold will be discarded.
+
+        Attributes:
+            * img (numpy.ndarray): The input image.
+            * model (str): Path to the Detectron2 model directory.
+            * predictor (DefaultPredictor): The predictor object configured
+            with the model for making predictions on the input images.
+        """
         self.img = im
         self.model = model_paths['detectron2']
         cfg = get_cfg()
@@ -70,40 +111,66 @@ class LayoutParser():
         cfg.MODEL.WEIGHTS = os.path.join(self.model, "model_final.pth")
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = detection_threshold
         cfg.DEVICE = 'cpu'
-        metadata_path = os.path.join(self.model, "metadata.txt")
-        with open(metadata_path, "r") as f:
-            labels = [line.strip() for line in f]
-        self.metadata = Metadata()
-        self.metadata.set(thing_classes=labels)
         self.predictor = DefaultPredictor(cfg)
 
     def detect_layout(self):
-        self.predictions = self.predictor(self.img)
-        instances = self.predictions["instances"].to("cpu")
+        """
+        Detects layout instances in the input image using the configured
+        predictor.
+
+        This method processes the input image and generates predictions for
+        layout instances. The predictions include bounding boxes, class labels,
+        and scores for each detected instance. The results are transferred to
+        the CPU for further processing.
+
+        Returns:
+            instances (Instances): An object containing detected layout
+            instances, including their bounding boxes, class labels, and
+            associated scores. The instances are represented on the CPU for
+            easier manipulation.
+        """
+        predictions = self.predictor(self.img)
+        instances = predictions["instances"].to("cpu")
         return instances
 
     def y_sort_layout(self):
+        """
+        Sorts the detected layout instances by their Y-coordinates and filters
+        out boxes based on their area.
+
+        This method performs the following steps:
+        1. Detects layout instances from the image.
+        2. Extracts the bounding boxes of the detected instances.
+        3. Sorts the bounding boxes based on their Y-coordinates.
+        4. Filters the sorted boxes by area to remove irrelevant boxes.
+        5. Draws rectangles around the filtered boxes on the original image.
+
+        Returns:
+            tuple: A tuple containing:
+                - pure_boxes (list): A list of filtered bounding boxes, each
+                represented as a list of coordinates [x1, y1, x2, y2].
+                - out_im (PIL.Image): The output image with rectangles drawn
+                around the filtered boxes.
+        """
         instances = self.detect_layout()
         boxes = instances.pred_boxes.tensor
         y_coords = boxes[:, 1]
         sorted_indices = torch.argsort(y_coords)
         sorted_boxes = boxes[sorted_indices]
-        return sorted_boxes
-
-    def visualize_layout(self):
-        instances = self.detect_layout()
-        v = Visualizer(self.img[:, :, ::-1], metadata=self.metadata,
-                       scale=0.5, instance_mode=ColorMode.IMAGE_BW)
-        out = v.draw_instance_predictions(instances)
-        out_im = out.get_image()
-        # cv2_imshow(out_im)
-        return Image.fromarray(out_im)
+        pure_boxes = filter_by_area(sorted_boxes.tolist())
+        for box in pure_boxes:
+            x1, y1, x2, y2 = box
+            out_im = cv2.rectangle(self.img, (x1, y1), (x2, y2),
+                                   color=random_color(), thickness=2)
+        out_im = Image.fromarray(self.img)
+        return pure_boxes, out_im
 
 
 class TextExtractor():
     def __init__(self, yolo=None, crnn=None):
         if yolo is None:
             yolo = model_paths['yolo']
+
         if crnn is None:
             crnn = model_paths['crnn']
 
@@ -115,7 +182,7 @@ class TextExtractor():
             self.ocr_agent = keras.models.Model(
                 self.crnn.get_layer(name="image").input,
                 self.crnn.get_layer(name="dense2").output)
-        self.threshold = {'y': 20, 'iou': 0.50}
+        self.threshold = {'y': 20, 'containment_ratio': 0.50}
         self.char_labels = os.path.join(
             root, "notebook/end_end_yolo/characters_list.pkl")
         with open(self.char_labels, "rb") as f:
@@ -126,55 +193,32 @@ class TextExtractor():
                 mask_token=None, invert=True)
 
     def predict_word_boundary(self):
-        predicted_word_boxes = self.yolo(self.image, verbose=False)[0].boxes
+        predicted_word_boxes = self.yolo(self.img, verbose=False)[0].boxes
         coordinates = predicted_word_boxes.xyxy.tolist()
-        confidence_scores = predicted_word_boxes.conf.tolist()
 
         bounding_boxes_y_sorted = sorted(
-            ((tuple(box), float(conf))
-             for box, conf in zip(coordinates, confidence_scores)),
-            key=lambda x: x[0][1]
-        )
+            [tuple(box) for box in coordinates], key=lambda x: x[1])
+        average_height = sum(bx[3] - bx[1] for bx in bounding_boxes_y_sorted) \
+            / len(bounding_boxes_y_sorted)
 
         lines, new_line = [], [(bounding_boxes_y_sorted[0])]
-        for box, conf in bounding_boxes_y_sorted[1:]:
-            prev_box, _ = new_line[-1]
+
+        for box in bounding_boxes_y_sorted[1:]:
+            prev_box = new_line[-1]
             # Compare y1 coordinates to decide if coordinates should be grouped
             # together i.e. coordinates belong to the same line.
-            if abs(box[1] - prev_box[1]) <= self.threshold['y']:
-                new_line.append((box, conf))
+            if abs(box[1] - prev_box[1]) <= average_height * 0.51:
+                new_line.append(box)
             else:
                 lines.append(new_line)
-                new_line = [(box, conf)]
+                new_line = [box]
         lines.append(new_line)
 
-        filtered_lines = []  # Remove overlapping boxes
+        x_y_sorted_boundaries = []
 
         for line in lines:
-            line.sort(key=lambda x: x[0][0])
-            pure_boxes = []
-
-            for box, current_conf in line:
-                # Check for overlaps with active boxes
-                overlapping = False
-                # Check if the current coordinate overlaps with any pure_boxes
-                for (coordinate, conf) in pure_boxes:
-                    iou_score = compute_iou(box, coordinate)
-                    if iou_score > self.threshold['iou']:
-                        overlapping = True
-                        if current_conf > conf:
-                            pure_boxes.remove((coordinate, conf))
-                        else:
-                            break
-
-                if not overlapping:
-                    pure_boxes.append((box, current_conf))
-
-            pure_boxes = [list(map(int, box[0])) for box in pure_boxes]
-
-            filtered_lines.append(pure_boxes)
-
-        x_y_sorted_boundaries = filtered_lines
+            line.sort(key=lambda x: x[0])
+            x_y_sorted_boundaries.append(filter_by_area(line))
 
         self.clusters = x_y_sorted_boundaries
 
@@ -182,29 +226,6 @@ class TextExtractor():
 
     def spellchecker(self, text):
         return self.spell(text)
-
-    def apply_ocr(self, img, spellcheck=False):
-        self.image = img
-        final_prediction = ""
-        self.predict_word_boundary()
-
-        # Loop through the lines and save images
-        for line in self.clusters:
-            for word in line:
-                x1, y1, x2, y2 = word
-                roi = self.image[y1:y2, x1:x2]
-                preprocessed_roi = self.preprocess_image(roi)
-                prediction = self.ocr_agent.predict(
-                    preprocessed_roi, verbose='0')
-                predicted_text = self.decode_ctc_prediction(prediction)
-                if spellcheck:
-                    corrected_text = self.spellchecker(predicted_text)
-                    final_prediction = final_prediction + corrected_text + " "
-                else:
-                    final_prediction = final_prediction + predicted_text + " "
-
-            final_prediction = final_prediction + "\n"
-        return final_prediction
 
     def preprocess_image(self, word):
         if isinstance(word, np.ndarray):
@@ -238,9 +259,7 @@ class TextExtractor():
         input_len = tf.fill([1], tf.shape(pred)[1])
         decoded, _ = tf.keras.backend.ctc_decode(
             pred, input_length=input_len, greedy=True)
-
-        # Get the first decoded sequence and trim to the first 27 characters
-        results = decoded[0][0][:27]
+        results = decoded[0][0][:50]
 
         # Remove padding (-1) and gather valid characters
         valid_results = tf.boolean_mask(results, tf.not_equal(results, -1))
@@ -248,39 +267,110 @@ class TextExtractor():
         # Convert numerical results to characters and join into a string
         return tf.strings.reduce_join(self.num_to_char(valid_results)).numpy().decode("utf-8")
 
+    def apply_padding(self):
+        padded_image = cv2.copyMakeBorder(
+            self.img, 100, 100, 100, 100,
+            cv2.BORDER_CONSTANT, value=(255, 255, 255))
+        self.img = padded_image
 
-def compute_iou(boxA, boxB):
+    def apply_ocr(self, img, spellcheck=False):
+        self.img = img
+        self.apply_padding()
+        self.predict_word_boundary()
+        final_prediction = ""
+
+        # Loop through the lines and save images
+        for line in self.clusters:
+            for word in line:
+                x1, y1, x2, y2 = word
+                roi = self.img[y1:y2, x1:x2]
+                preprocessed_roi = self.preprocess_image(roi)
+                prediction = self.ocr_agent.predict(
+                    preprocessed_roi, verbose='0')
+                predicted_text = self.decode_ctc_prediction(prediction)
+                if spellcheck:
+                    corrected_text = self.spellchecker(predicted_text)
+                    final_prediction = final_prediction + corrected_text + " "
+                else:
+                    final_prediction = final_prediction + predicted_text + " "
+
+            final_prediction = final_prediction + "\n"
+        return final_prediction
+
+
+def compute_area(box):
+    return (box[2] - box[0] + 1) * (box[3] - box[1] + 1)
+
+
+def compute_containment_ratio(boxA, boxB):
+    # Calculate intersection coordinates
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
     xB = min(boxA[2], boxB[2])
     yB = min(boxA[3], boxB[3])
 
-    # Compute the area of the intersection rectangle
-    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    # Calculate width and height of the intersection area
+    inter_width = max(0, xB - xA + 1)
+    inter_height = max(0, yB - yA + 1)
 
-    # Compute the area of both bounding boxes
-    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+    # If no intersection, return 0 early
+    if inter_width == 0 or inter_height == 0:
+        return 0
 
-    # Compute the IoU
-    iou = interArea / float(boxAArea + boxBArea - interArea)
+    # Compute the intersection area
+    inter_area = inter_width * inter_height
 
-    return iou
+    boxA_area = compute_area(boxA)
+    boxB_area = compute_area(boxB)
+    smaller_area = min(boxA_area, boxB_area)
+
+    return inter_area / smaller_area if smaller_area > 0 else 0
+
+
+def filter_by_area(group, threshold=0.8):
+
+    pure_boxes = []
+
+    for box in group:
+        keep_box = True
+        box_area = compute_area(box)
+
+        for other_box in group:
+            if other_box == box:
+                continue
+
+            containment_ratio = compute_containment_ratio(
+                box, other_box)
+
+            if containment_ratio > threshold:
+                other_box_area = compute_area(other_box)
+
+                if box_area < other_box_area:
+                    keep_box = False
+                    break
+
+        if keep_box:
+            pure_boxes.append(list(map(int, box)))
+    return pure_boxes
 
 
 def main():
-    ocr = None
-    image_path = os.path.join(root, 'notebook/end_end_yolo/eng_EU_319.jpg')
+    ocr = True
+    layout_detection = True
+    image_path = os.path.join(root, 'notebook/end_end_yolo/eng_AS_077.jpg')
+    image_path = '/home/nikin/WhatsApp Image 2024-09-27 at 11.05.43 PM.jpeg'
     im = cv2.imread(image_path)
 
-    TestTwo = LayoutParser(im)
-    boxes = TestTwo.y_sort_layout()
+    if layout_detection:
+        TestTwo = LayoutParser(im)
+        boxes, img = TestTwo.y_sort_layout()
+        img = np.array(img)
+        cv2_imshow(img, scale=0.5)
 
     if ocr:
         TestOne = TextExtractor()
         digitized_text = TestOne.apply_ocr(im)
         print(digitized_text)
-    sys.exit()
 
 
 if __name__ == "__main__":
