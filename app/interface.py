@@ -117,3 +117,5 @@ if input is not None:
 st.write("")
 st.markdown("Authors: [nikin](https://github.com/nikinbaidar), "
             "[nimesh](https://github.com/nikinbaidar)")
+
+# Remove txt files
